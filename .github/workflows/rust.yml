@@ -77,7 +77,12 @@ jobs:
           # we make cross-compilation
           if [[ $OS =~ ^ubuntu.*$ ]]; then
             sudo apt-get update
-            sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf
+            sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf pkg-config libssl-dev
+          fi
+
+          if [[ $OS =~ ^macos.*$ ]]; then
+            brew update
+            brew install openssl
           fi
 
           # some additional configuration for cross-compilation on linux
@@ -98,7 +103,7 @@ jobs:
       - name: Install rust target
         run: rustup target add $TARGET
       - name: Run build
-        run: cargo build --release --verbose --target $TARGET
+        run: cargo build --release --target $TARGET
       - name: List target
         run: find ./target
       - name: Compress
