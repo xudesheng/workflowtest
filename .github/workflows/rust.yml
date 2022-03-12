@@ -77,7 +77,7 @@ jobs:
           # we make cross-compilation
           if [[ $OS =~ ^ubuntu.*$ ]]; then
             sudo apt-get update
-            sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf pkg-config libssl-dev musl-dev musl-tools clang llvm
+            sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf
           fi
           if [[ $TARGET =~ ^x86_64-unknown-linux-musl$ ]]; then
             sudo apt-get update
