@@ -94,6 +94,7 @@ jobs:
               libsqlite-dev \
               libssl-dev \
               linux-libc-dev \
+              pkg-config \
               pkgconf \
               sudo \
               unzip \
