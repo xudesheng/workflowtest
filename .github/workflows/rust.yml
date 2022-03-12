@@ -86,7 +86,6 @@ jobs:
             sudo ln -s /usr/include/linux /usr/local/musl/include/linux
             sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/local/musl/include/asm
             sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic
-            export CC=musl-gcc ./Configure no-shared no-zlib -fPIC --prefix=/usr/local/musl -DOPENSSL_NO_SECURE_MEMORY linux-x86_64
             export X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
             export X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1 
             export PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1 
@@ -102,7 +101,6 @@ jobs:
             sudo ln -s /usr/include/linux /usr/local/musl/include/linux
             sudo ln -s /usr/include/aarch64-linux-gnu/asm /usr/local/musl/include/asm
             sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic
-            export CC=musl-gcc ./Configure no-shared no-zlib -fPIC --prefix=/usr/local/musl -DOPENSSL_NO_SECURE_MEMORY linux-aarch64
             export AARCH64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
             export AARCH64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1
             export PQ_LIB_STATIC_aarch64_UNKNOWN_LINUX_MUSL=1
