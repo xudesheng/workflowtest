@@ -112,6 +112,9 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install 7Zip PowerShell Module
+        shell: powershell
+        run: Install-Module 7Zip4PowerShell -Force -Verbose
       - uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: stable
@@ -125,7 +128,8 @@ jobs:
         with:
           name: windowsbuild
           path: ./target/release/workflowtest.exe
-      - run: 'zip -j amd64-windowsbuild-binaries.zip ./target/release/workflowtest.exe'
+      # - run: 'zip -j amd64-windowsbuild-binaries.zip ./target/release/workflowtest.exe'
+      - run: 'powershell Compress-7Zip ./target/release/workflowtest.exe -ArchiveFileName amd64-windowsbuild-binaries.zip -Format Zip'
       - name: Upload windows build Zip Artifact
         uses: actions/upload-artifact@v2
         with:
