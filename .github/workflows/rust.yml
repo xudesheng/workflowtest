@@ -154,10 +154,20 @@ jobs:
       - name: check result
         run: |
           cargo build --release
-  
           ls -l ./target/release/
-
-     
+          strip ./target/release/workflowtest
+          ls -l ./target/release
+      - name: Upload workflowtest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: macbuild
+          path: ./target/release/workflowtest
+      - run: 'zip -j amd64-macbuild-binaries.zip ./target/release/workflowtest'
+      - name: Upload mac build Zip Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: macbuild
+          path: amd64-macbuild-binaries.zip
 
   update_release_draft:
     needs: [quickcheck,  amd64binaries, debbuild,windowsbuild,macbuild]
@@ -184,7 +194,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./amd64deb/workflowtest_${{needs.quickcheck.outputs.version}}_amd64.deb
-          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_amd64.deb'
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_ubuntu_amd64.deb'
           asset_content_type: application/vnd.debian.binary-package
       
       - name: Upload Amd64 Static Binary Zip Release Asset
@@ -207,5 +217,14 @@ jobs:
           asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_windows_amd64_binaries.zip'
           asset_content_type: application/zip
 
+      - name: Upload Amd64 Mac Binary Zip Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./macbuild/amd64-macbuild-binaries.zip
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_mac_amd64_binaries.zip'
+          asset_content_type: application/zip
       
   
