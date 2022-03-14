@@ -20,21 +20,21 @@ defaults:
     shell: bash
 
 jobs:
-  create-release:
-    if: github.repository_owner == 'xudesheng'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: taiki-e/github-actions/install-rust@main
-        with:
-          toolchain: stable
-      - run: cargo package
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          changelog: CHANGELOG.md
-          title: $version
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # create-release:
+  #   if: github.repository_owner == 'xudesheng'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: taiki-e/github-actions/install-rust@main
+  #       with:
+  #         toolchain: stable
+  #     - run: cargo package
+  #     - uses: taiki-e/create-gh-release-action@v1
+  #       with:
+  #         changelog: CHANGELOG.md
+  #         title: $version
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   quickcheck:
     runs-on: ubuntu-latest
@@ -103,22 +103,53 @@ jobs:
         name: amd64binaries
         path: amd64binaries.zip
   
+  windowsmacbuild:
+    name: ${{ matrix.target }}
+    if: github.repository_owner == 'xudesheng'
+    needs:
+      - build
+      - quickcheck
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          
+    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies (MacOS)
+        run: |
+          brew install openssl
+        if: matrix.os == 'macos-latest'
+      
+      - uses: taiki-e/github-actions/install-rust@main
+        with:
+          toolchain: stable
+      - name: check result
+        run: |
+          ls -l ./target/release/
+          
+     
+
   update_release_draft:
-    needs: [quickcheck,  amd64binaries, debbuild,create-release ]
+    needs: [quickcheck,  amd64binaries, debbuild]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      # - name: Create Release
-      #   id: create_release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      #   with:
-      #     tag_name: '${{ needs.quickcheck.outputs.version }}'
-      #     release_name: Release ${{ needs.quickcheck.outputs.version }}
-      #     body: 'Change Me'
-      #     draft: true
-      #     prerelease: false
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: '${{ needs.quickcheck.outputs.version }}'
+          release_name: Release ${{ needs.quickcheck.outputs.version }}
+          body: 'Change Me'
+          draft: true
+          prerelease: false
       - uses: actions/download-artifact@v2
       - run: ls -lha
       - name: Upload amd64 deb Release Asset
@@ -142,48 +173,4 @@ jobs:
           asset_content_type: application/zip
 
       
-  upload-assets:
-    name: ${{ matrix.target }}
-    if: github.repository_owner == 'xudesheng'
-    needs:
-      - create-release
-      - update_release_draft
-    strategy:
-      matrix:
-        include:
-          # - target: x86_64-unknown-linux-gnu
-          # - target: aarch64-unknown-linux-gnu
-          # - target: aarch64-apple-darwin
-          #   os: macos-latest
-          # - target: x86_64-pc-windows-gnu
-          #   os: windows-latest
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-          # - target: x86_64-unknown-linux-musl
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies (linux)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libssl-dev
-        if: matrix.os == 'ubuntu-latest'
-      - name: Install dependencies (MacOS)
-        run: |
-          brew install openssl
-        if: matrix.os == 'macos-latest'
-      
-      - uses: taiki-e/github-actions/install-rust@main
-        with:
-          toolchain: stable
-      - uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          bin: workflowtest
-          target: ${{ matrix.target }}
-          tar: unix
-          zip: windows
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # CARGO_PROFILE_RELEASE_LTO: true
+  
