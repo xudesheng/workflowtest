@@ -58,11 +58,7 @@ jobs:
           exit 1
         fi
 
-        if [ -f "./CHANGELOG.md" ]; then
-          echo "::error::Can't find CHANGELOG.md in project root folder"
-          exit 1
-        fi
-
+        
         curl --proto '=https' --tlsv1.2 -fsSL --retry 10 --retry-connrefused "https://github.com/taiki-e/parse-changelog/releases/download/${parse_changelog_tag}/parse-changelog-${target}.tar.gz" \
         | tar xzf -
         notes=$(./parse-changelog "./CHANGELOG.md" "${CARGO_RELEASE}")
