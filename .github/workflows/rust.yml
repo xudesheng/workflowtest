@@ -40,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.rustversion.outputs.rustversion }}
+      release_tag: ${{ steps.release_tag.outputs.release_tag }}
     steps:
     - uses: actions/checkout@v2
     - run: cargo check
@@ -48,9 +49,10 @@ jobs:
     - run: |
         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
         echo tag=${RELEASE_TAG}
-        echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
     - id: rustversion
       run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
+    - id: release_tag
+      run: 'echo "::set-output name=release_tag::${GITHUB_REF#refs/tags/}"'
 
   build:
     needs: quickcheck
@@ -189,9 +191,7 @@ jobs:
           body: 'Change Me'
           draft: true
           prerelease: false
-      - run: |
-          echo "Tag name is ${{ env.RELEASE_TAG }}"
-
+      - run: 'echo "Tag name is ${{needs.quickcheck.outputs.version}}"'
       - uses: actions/download-artifact@v2
       - run: ls -lha
       - name: Upload amd64 deb Release Asset
