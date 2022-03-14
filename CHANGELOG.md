@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.0.21] - 2022-03-14
+
+### Added
+ - trigger new build
+ - add tag check
+
 ## [v0.0.20] - 2022-03-14
 
 ### Added
