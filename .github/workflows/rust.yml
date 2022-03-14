@@ -258,7 +258,8 @@ jobs:
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
           gh release upload ${RELEASE_TAG} ./amd64deb/workflowtest_${CARGO_RELEASE}_amd64.deb --clobber
-
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # uses: actions/upload-release-asset@v1
         # env:
         #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -271,6 +272,8 @@ jobs:
       - name: Upload Amd64 Static Binary Zip Release Asset
         run: |
           gh release upload ${RELEASE_TAG} ./amd64binaries/amd64binaries.zip --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # uses: actions/upload-release-asset@v1
         # env:
         #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -283,6 +286,8 @@ jobs:
       - name: Upload Amd64 Windows Binary Zip Release Asset
         run: |
           gh release upload ${RELEASE_TAG} ./windowsbuild/amd64-windowsbuild-binaries.zip --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
         # uses: actions/upload-release-asset@v1
         # env:
@@ -294,13 +299,17 @@ jobs:
         #   asset_content_type: application/zip
 
       - name: Upload Amd64 Mac Binary Zip Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./macbuild/amd64-macbuild-binaries.zip
-          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_mac_amd64_binaries.zip'
-          asset_content_type: application/zip
+        run: |
+            gh release upload ${RELEASE_TAG} ./macbuild/amd64-macbuild-binaries.zip --clobber
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # uses: actions/upload-release-asset@v1
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # with:
+        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+        #   asset_path: ./macbuild/amd64-macbuild-binaries.zip
+        #   asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_mac_amd64_binaries.zip'
+        #   asset_content_type: application/zip
       
   
