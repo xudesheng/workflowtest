@@ -120,7 +120,18 @@ jobs:
           cargo build --release
   
           ls -l ./target/release/
-          
+      - name: Upload workflowtest Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windowsbuild
+          path: ./target/release/workflowtest.exe
+      - run: 'zip -j amd64-windowsbuild-binaries.zip ./target/release/workflowtest.exe'
+      - name: Upload windows build Zip Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windowsbuild
+          path: amd64-windowsbuild-binaries.zip
+
   macbuild:
     name: macbuild
     if: github.repository_owner == 'xudesheng'
@@ -180,6 +191,16 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./amd64binaries/amd64binaries.zip
           asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
+          asset_content_type: application/zip
+      
+      - name: Upload Amd64 Windows Binary Zip Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./windowsbuild/amd64-windowsbuild-binaries.zip
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_windows_amd64_binaries.zip'
           asset_content_type: application/zip
 
       
