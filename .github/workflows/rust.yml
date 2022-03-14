@@ -103,35 +103,45 @@ jobs:
         name: amd64binaries
         path: amd64binaries.zip
   
-  windowsmacbuild:
-    name: ${{ matrix.target }}
+  windowsbuild:
+    name: windowsbuild
     if: github.repository_owner == 'xudesheng'
     needs:
       - build
       - quickcheck
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-apple-darwin
-            os: macos-latest
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-          
-    runs-on: ${{ matrix.os || 'ubuntu-latest' }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install dependencies (MacOS)
-        run: |
-          brew install openssl
-        if: matrix.os == 'macos-latest'
-      
       - uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: stable
       - name: check result
         run: |
+          cargo build --release
+  
           ls -l ./target/release/
           
+  macbuild:
+    name: macbuild
+    if: github.repository_owner == 'xudesheng'
+    needs:
+      - build
+      - quickcheck
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies (MacOS)
+        run: |
+          brew install openssl
+      - uses: taiki-e/github-actions/install-rust@main
+        with:
+          toolchain: stable
+      - name: check result
+        run: |
+          cargo build --release
+  
+          ls -l ./target/release/
+
      
 
   update_release_draft:
