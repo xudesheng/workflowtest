@@ -72,8 +72,30 @@ jobs:
         name: amd64binaries
         path: amd64binaries.zip
   
+  windowsbinaries:
+    needs: [build, quickcheck]
+    runs-on: windows-latest
+    name: Amd64WindowsStaticBinaries
+    steps:
+    - uses: actions/checkout@v2
+    - uses: taiki-e/github-actions/install-rust@main
+        with:
+          toolchain: stable
+    
+    - name: Upload workflowtest Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amd64windowsbinaries
+        path: ./target/release/workflowtest
+    - run: 'zip -j amd64windowsbinaries.zip ./target/release/workflowtest'
+    - name: Upload Zip Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amd64windowsbinaries
+        path: amd64windowsbinaries.zip
+
   update_release_draft:
-    needs: [quickcheck,  amd64binaries, debbuild  ]
+    needs: [quickcheck,  amd64binaries, debbuild ,windowsbinaries ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -108,4 +130,14 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./amd64binaries/amd64binaries.zip
           asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
+          asset_content_type: application/zip
+
+      - name: Upload Amd64 Windows Static Binary Zip Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./amd64windowsbinaries/amd64windowsbinaries.zip
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_windows_amd64_binaries.zip'
           asset_content_type: application/zip
