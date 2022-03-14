@@ -57,8 +57,15 @@ jobs:
           echo "::error::tag:${RELEASE_TAG} doesn't match version in cargo: ${CARGO_RELEASE}"
           exit 1
         fi
-
+        parse_changelog_tag="v0.4.7"
         
+        case "${OSTYPE}" in
+            linux*) target="x86_64-unknown-linux-musl" ;;
+            darwin*) target="x86_64-apple-darwin" ;;
+            cygwin* | msys*) target="x86_64-pc-windows-msvc" ;;
+            *) bail "unrecognized OSTYPE '${OSTYPE}'" ;;
+        esac
+        echo "target=${target}"
         curl --proto '=https' --tlsv1.2 -fsSL --retry 10 --retry-connrefused "https://github.com/taiki-e/parse-changelog/releases/download/${parse_changelog_tag}/parse-changelog-${target}.tar.gz" \
         | tar xzf -
         notes=$(./parse-changelog "./CHANGELOG.md" "${CARGO_RELEASE}")
