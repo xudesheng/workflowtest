@@ -1,0 +1,38 @@
+#!/bin/sh
+# set -e
+# This will only remove masks created by d-s-h on package removal.
+# deb-systemd-helper unmask workflowtest.service > /dev/null || true
+
+# # was-enabled defaults to true, so new installations run enable.
+# if deb-systemd-helper --quiet was-enabled workflowtest.service
+# then
+# 	# Enables the unit on first installation, creates new
+# 	# symlinks on upgrades if the unit file has changed.
+# 	# systemctl --system daemon-reload > /dev/null || true
+# 	deb-systemd-helper enable workflowtest.service > /dev/null || true
+# 	deb-systemd-invoke start workflowtest
+# 	# deb-systemd-invoke stop tsample
+# else
+# 	# Update the statefile to add new symlinks (if any), which need to be
+# 	# cleaned up on purge. Also remove old symlinks.
+# 	deb-systemd-helper update-state workflowtest.service > /dev/null || true
+# fi
+if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
+	if deb-systemd-helper debian-installed workflowtest.service; then
+		# This will only remove masks created by d-s-h on package removal.
+		deb-systemd-helper unmask workflowtest.service >/dev/null || true
+
+		if deb-systemd-helper --quiet was-enabled workflowtest.service; then
+			# Create new symlinks, if any.
+			deb-systemd-helper enable workflowtest.service >/dev/null || true
+		fi
+	fi
+
+	# Update the statefile to add new symlinks (if any), which need to be cleaned
+	# up on purge. Also remove old symlinks.
+	deb-systemd-helper update-state workflowtest.service >/dev/null || true
+fi
+
+# sudo rm /var/lib/dpkg/info/workflowtest*
+# sudo dpkg --configure -D 777 workflowtest
+# sudo apt -f install

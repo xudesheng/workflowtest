@@ -1,0 +1,15 @@
+[Unit]
+Description=Demo Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Environment=WORKFLOW_LOG=info
+Environment=CONFIG_FILE=/etc/workflowtest/config.yaml
+ExecStart=/usr/sbin/workflowtest
+Restart=always
+RestartSec=2
+Type=simple
+
+[Install]
+WantedBy=multi-user.target

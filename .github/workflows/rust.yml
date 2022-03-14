@@ -1,268 +1,111 @@
-name: Rust
-
 on:
   push:
+    branches:
+      - master
 
-env:
-  CARGO_TERM_COLOR: always
-
-defaults:
-  run:
-    # necessary for windows
-    shell: bash
+name: Continuous Integration
 
 jobs:
-  test:
+  quickcheck:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.rustversion.outputs.rustversion }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Cargo cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ./target
-          key: test-cargo-registry
-      - name: List
-        run: find ./
-      - name: Run tests
-        run: cargo test --verbose
-
+    - uses: actions/checkout@v2
+    - run: cargo check
+    - run: cargo pkgid
+    - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
+    - id: rustversion
+      run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
   build:
+    needs: quickcheck
+    name: 'build-${{matrix.os}}'
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
-        # a list of all the targets
-        include:
-          - TARGET: x86_64-unknown-linux-gnu # tested in a debian container on a mac
-            OS: ubuntu-latest
-          - TARGET: x86_64-unknown-linux-musl # test in an alpine container on a mac
-            OS: ubuntu-latest
-          - TARGET: aarch64-unknown-linux-gnu # tested on aws t4g.nano
-            OS: ubuntu-latest
-          - TARGET: aarch64-unknown-linux-musl # tested on aws t4g.nano in alpine container
-            OS: ubuntu-latest
-          - TARGET: armv7-unknown-linux-gnueabihf # raspberry pi 2-3-4, not tested
-            OS: ubuntu-latest
-          - TARGET: armv7-unknown-linux-musleabihf # raspberry pi 2-3-4, not tested
-            OS: ubuntu-latest
-          - TARGET: arm-unknown-linux-gnueabihf # raspberry pi 0-1, not tested
-            OS: ubuntu-latest
-          - TARGET: arm-unknown-linux-musleabihf # raspberry pi 0-1, not tested
-            OS: ubuntu-latest
-          - TARGET: x86_64-apple-darwin # tested on a mac, is not properly signed so there are security warnings
-            OS: macos-latest
-          - TARGET: x86_64-pc-windows-gnu # tested on a windows machine
-            OS: windows-latest
-    needs: test
-    runs-on: ${{ matrix.OS }}
-    env:
-      NAME: workflowtest
-      TARGET: ${{ matrix.TARGET }}
-      OS: ${{ matrix.OS }}
+        os: [ubuntu-latest]
     steps:
-      - uses: actions/checkout@v2
-      - name: Cargo cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ./target
-          key: build-cargo-registry-${{matrix.TARGET}}
-      - name: List
-        run: find ./
-      - name: Install and configure dependencies
-        run: |
-          # dependencies are only needed on ubuntu as that's the only place where
-          # we make cross-compilation
-          if [[ $OS =~ ^ubuntu.*$ ]]; then
-            sudo apt-get update
-            sudo apt-get install -qq crossbuild-essential-arm64 crossbuild-essential-armhf
-          fi
-          if [[ $TARGET =~ ^x86_64-unknown-linux-musl$ ]]; then
-            sudo apt-get update && sudo apt-get upgrade
-            sudo apt-get install -qq \
-              build-essential \
-              cmake \
-              curl \
-              file \
-              git \
-              graphviz \
-              musl-dev \
-              musl-tools \
-              libpq-dev \
-              libsqlite-dev \
-              libssl-dev \
-              linux-libc-dev \
-              pkg-config \
-              pkgconf \
-              sudo \
-              unzip \
-              xutils-dev
-            sudo useradd rust --user-group --create-home --shell /bin/bash --groups sudo
-
-            export TOOLCHAIN=stable
-            export OPENSSL_VERSION=1.1.1m
-            export MDBOOK_VERSION=0.4.14
-            export MDBOOK_GRAPHVIZ_VERSION=0.1.3
-            export CARGO_ABOUT_VERSION=0.4.4
-            export CARGO_AUDIT_VERSION=0.16.0
-            export CARGO_DENY_VERSION=0.11.0
-            export ZLIB_VERSION=1.2.11
-            export POSTGRESQL_VERSION=11.14
-            sudo curl -fLO https://github.com/rust-lang-nursery/mdBook/releases/download/v$MDBOOK_VERSION/mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
-            sudo tar xf mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
-            sudo mv mdbook /usr/local/bin/ && \
-            sudo rm -f mdbook-v$MDBOOK_VERSION-x86_64-unknown-linux-gnu.tar.gz && \
-            sudo curl -fLO https://github.com/dylanowen/mdbook-graphviz/releases/download/v$MDBOOK_GRAPHVIZ_VERSION/mdbook-graphviz_v${MDBOOK_GRAPHVIZ_VERSION}_x86_64-unknown-linux-musl.zip && \
-            sudo unzip mdbook-graphviz_v${MDBOOK_GRAPHVIZ_VERSION}_x86_64-unknown-linux-musl.zip && \
-            sudo mv mdbook-graphviz /usr/local/bin/ && \
-            sudo rm -f mdbook-graphviz_v${MDBOOK_GRAPHVIZ_VERSION}_x86_64-unknown-linux-musl.zip && \
-            sudo curl -fLO https://github.com/EmbarkStudios/cargo-about/releases/download/$CARGO_ABOUT_VERSION/cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            sudo tar xf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            sudo mv cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl/cargo-about /usr/local/bin/ && \
-            sudo rm -rf cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl.tar.gz cargo-about-$CARGO_ABOUT_VERSION-x86_64-unknown-linux-musl && \
-            sudo curl -fLO https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv${CARGO_AUDIT_VERSION}/cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}.tgz && \
-            sudo tar xf cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}.tgz && \
-            sudo cp cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}/cargo-audit /usr/local/bin/ && \
-            sudo rm -rf cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}.tgz cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION} && \
-            sudo curl -fLO https://github.com/EmbarkStudios/cargo-deny/releases/download/$CARGO_DENY_VERSION/cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            sudo tar xf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz && \
-            sudo mv cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/ && \
-            sudo rm -rf cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl cargo-deny-$CARGO_DENY_VERSION-x86_64-unknown-linux-musl.tar.gz
-            sudo ln -s "/usr/bin/g++" "/usr/bin/musl-g++"
-
-            echo "Building OpenSSL" && \
-            ls /usr/include/linux && \
-            sudo  mkdir -p /usr/local/musl/include && \
-            sudo ln -s /usr/include/linux /usr/local/musl/include/linux && \
-            sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/local/musl/include/asm && \
-            sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic && \
-            cd /tmp && \
-            export short_version="$(echo "$OPENSSL_VERSION" | sed s'/[a-z]$//' )" && \
-            sudo curl -fLO "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz" || \
-               sudo  curl -fLO "https://www.openssl.org/source/old/$short_version/openssl-$OPENSSL_VERSION.tar.gz" && \
-            sudo tar xvzf "openssl-$OPENSSL_VERSION.tar.gz" && cd "openssl-$OPENSSL_VERSION" && \
-            export CC=musl-gcc ./Configure no-shared no-zlib -fPIC --prefix=/usr/local/musl -DOPENSSL_NO_SECURE_MEMORY linux-x86_64 && \
-            export C_INCLUDE_PATH=/usr/local/musl/include/ \
-            sudo make depend && \
-            export C_INCLUDE_PATH=/usr/local/musl/include/ 
-            sudo make && \
-            sudo make install && \
-            sudo rm /usr/local/musl/include/linux /usr/local/musl/include/asm /usr/local/musl/include/asm-generic && \
-            sudo rm -r /tmp/*
-            
-            export OPENSSL_DIR=/usr/local/musl
-
-            echo "Building zlib" && \
-            cd /tmp && \
-            sudo curl -fLO "http://zlib.net/zlib-$ZLIB_VERSION.tar.gz" && \
-            sudo tar xzf "zlib-$ZLIB_VERSION.tar.gz" && cd "zlib-$ZLIB_VERSION" && \
-            export CC=musl-gcc ./configure --static --prefix=/usr/local/musl && \
-            sudo make && sudo  make install && \
-            sudo rm -r /tmp/*
-
-            echo "Building libpq" && \
-            cd /tmp && \
-            sudo curl -fLO "https://ftp.postgresql.org/pub/source/v$POSTGRESQL_VERSION/postgresql-$POSTGRESQL_VERSION.tar.gz" && \
-            sudo tar xzf "postgresql-$POSTGRESQL_VERSION.tar.gz" && cd "postgresql-$POSTGRESQL_VERSION" && \
-            export CC=musl-gcc CPPFLAGS=-I/usr/local/musl/include LDFLAGS=-L/usr/local/musl/lib 
-            sudo ./configure --with-openssl --without-readline --prefix=/usr/local/musl && \
-            cd src/interfaces/libpq && sudo make all-static-lib && sudo make install-lib-static && \
-            cd ../../bin/pg_config && sudo make && sudo make install && \
-            sudo rm -r /tmp/*
-            
-            
-            export X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
-            export X86_64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1 
-            export PQ_LIB_STATIC_X86_64_UNKNOWN_LINUX_MUSL=1 
-            export PKG_CONFIG_ALLOW_CROSS=true
-            export PKG_CONFIG_ALL_STATIC=true 
-            export LIBZ_SYS_STATIC=1 
-            export TARGET=musl
-          fi
-          if [[ $TARGET =~ ^aarch64-unknown-linux-musl$ ]]; then
-            sudo apt-get update && sudo apt-get upgrade
-            sudo apt-get install -qq musl-dev musl-tools clang llvm
-            sudo mkdir -p /usr/local/musl/include
-            sudo ln -s /usr/include/linux /usr/local/musl/include/linux
-            sudo ln -s /usr/include/aarch64-linux-gnu/asm /usr/local/musl/include/asm
-            sudo ln -s /usr/include/asm-generic /usr/local/musl/include/asm-generic
-            export AARCH64_UNKNOWN_LINUX_MUSL_OPENSSL_DIR=/usr/local/musl/
-            export AARCH64_UNKNOWN_LINUX_MUSL_OPENSSL_STATIC=1
-            export PQ_LIB_STATIC_aarch64_UNKNOWN_LINUX_MUSL=1
-            export PKG_CONFIG_ALLOW_CROSS=true
-            export PKG_CONFIG_ALL_STATIC=true
-            export LIBZ_SYS_STATIC=1
-            export CC_aarch64_unknown_linux_musl=clang
-            export AR_aarch64_unknown_linux_musl=llvm-ar
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_RUSTFLAGS="-Clink-self-contained=yes -Clinker=rust-lld"
-            export TARGET=musl
-          fi
-
-          if [[ $OS =~ ^macos.*$ ]]; then
-            brew update
-            brew install openssl
-          fi
-
-          # some additional configuration for cross-compilation on linux
-          cat >>~/.cargo/config <<EOF
-          [target.aarch64-unknown-linux-gnu]
-          linker = "aarch64-linux-gnu-gcc"
-          [target.aarch64-unknown-linux-musl]
-          linker = "aarch64-linux-gnu-gcc"
-          [target.armv7-unknown-linux-gnueabihf]
-          linker = "arm-linux-gnueabihf-gcc"
-          [target.armv7-unknown-linux-musleabihf]
-          linker = "arm-linux-gnueabihf-gcc"
-          [target.arm-unknown-linux-gnueabihf]
-          linker = "arm-linux-gnueabihf-gcc"
-          [target.arm-unknown-linux-musleabihf]
-          linker = "arm-linux-gnueabihf-gcc"
-          EOF
-      - name: Install rust target
-        run: rustup target add $TARGET
-      - name: Run build
-        run: cargo build --release --target $TARGET
-      - name: List target
-        run: find ./target
-      - name: Compress
-        run: |
-          mkdir -p ./artifacts
-          # windows is the only OS using a different convention for executable file name
-          if [[ $OS =~ ^windows.*$ ]]; then
-              EXEC=$NAME.exe
-          else
-              EXEC=$NAME
-          fi
-          if [[ $GITHUB_REF_TYPE =~ ^tag$ ]]; then
-            TAG=$GITHUB_REF_NAME
-          else
-            TAG=$GITHUB_SHA
-          fi
-          mv ./target/$TARGET/release/$EXEC ./$EXEC
-          tar -czf ./artifacts/$NAME-$TARGET-$TAG.tar.gz $EXEC
-      - name: Archive artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: result
-          path: |
-            ./artifacts
-
-  # deploys to github releases on tag
-  deploy:
-    if: startsWith(github.ref, 'refs/tags/')
-    needs: build
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build
+    - name: Run tests
+      run: cargo test
+  
+  debbuild:
+    needs: [build]
+    runs-on: ubuntu-latest
+    name: Amd64Deb
+    steps:
+    - uses: actions/checkout@v2
+    - name: BuildDeb
+      id: debbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        cmd: cargo deb
+    - name: Upload Deb Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amd64deb
+        path: ./target/x86_64-unknown-linux-musl/debian/*
+  
+  amd64binaries:
+    needs: [build, quickcheck]
+    runs-on: ubuntu-latest
+    name: Amd64StaticBinaries
+    steps:
+    - uses: actions/checkout@v2
+    - name: StaticBinaryBuild
+      id: amd64staticbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        cmd: cargo build --release --target=x86_64-unknown-linux-musl
+    
+    - name: Upload workflowtest Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amd64binaries
+        path: ./target/x86_64-unknown-linux-musl/release/workflowtest
+    - run: 'zip -j amd64binaries.zip ./target/x86_64-unknown-linux-musl/release/workflowtest'
+    - name: Upload Zip Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: amd64binaries
+        path: amd64binaries.zip
+  
+  update_release_draft:
+    needs: [quickcheck,  amd64binaries, debbuild  ]
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
+      - uses: actions/checkout@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          name: result
-          path: ./artifacts
-      - name: List
-        run: find ./artifacts
-      - name: Release
-        uses: softprops/action-gh-release@v1
+          tag_name: '${{ needs.quickcheck.outputs.version }}'
+          release_name: Release ${{ needs.quickcheck.outputs.version }}
+          body: 'Change Me'
+          draft: true
+          prerelease: false
+      - uses: actions/download-artifact@v2
+      - run: ls -lha
+      - name: Upload amd64 deb Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: ./artifacts/*.tar.gz
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./amd64deb/workflowtest_${{needs.quickcheck.outputs.version}}_amd64.deb
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_amd64.deb'
+          asset_content_type: application/vnd.debian.binary-package
+      
+      - name: Upload Amd64 Static Binary Zip Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./amd64binaries/amd64binaries.zip
+          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
+          asset_content_type: application/zip

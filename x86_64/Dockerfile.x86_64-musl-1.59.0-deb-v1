@@ -1,0 +1,11 @@
+#FROM clux/muslrust
+FROM xudesheng/rustbuilder:x86_64-musl-1.59.0
+# https://github.com/ebbflow-io/cargo-deb-amd64-ubuntu/blob/master/Dockerfile
+#tagged as "xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1"
+
+RUN cargo install cargo-deb
+
+# docker run -v $pwd:/volume --rm --env GITHUB_WORKSPACE=. -t namespace/tag cargo deb
+# docker run -v %cd%:/volume --rm --env GITHUB_WORKSPACE=. -t namespace/tag cargo deb
+COPY entrypoint.sh /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
