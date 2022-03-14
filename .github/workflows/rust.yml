@@ -247,6 +247,8 @@ jobs:
 
           RELEASE_TITLE="Release_${RELEASE_TAG}"
           gh release create ${draft_option:-} "${RELEASE_TAG}" ${prerelease:-} --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES:-}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # - run: 'echo "Tag name is ${{needs.quickcheck.outputs.version}}"'
       - run: 'echo "Tag name is ${{needs.quickcheck.outputs.release_tag}}"'
@@ -301,8 +303,8 @@ jobs:
       - name: Upload Amd64 Mac Binary Zip Release Asset
         run: |
             gh release upload ${RELEASE_TAG} ./macbuild/amd64-macbuild-binaries.zip --clobber
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # uses: actions/upload-release-asset@v1
         # env:
         #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
