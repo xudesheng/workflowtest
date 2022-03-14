@@ -276,7 +276,7 @@ jobs:
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./x86_64-unknown-linux-musl/workflowtest-${{RELEASE_TAG}}-x86_64-unknown-linux-musl.zip --clobber
+          gh release upload ${RELEASE_TAG} ./x86_64-unknown-linux-musl/workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.zip --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # uses: actions/upload-release-asset@v1
@@ -293,7 +293,7 @@ jobs:
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./windowsbuild/workflowtest-${{RELEASE_TAG}}-x86_64-windows.zip --clobber
+          gh release upload ${RELEASE_TAG} ./windowsbuild/workflowtest-${RELEASE_TAG}-x86_64-windows.zip --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -311,7 +311,7 @@ jobs:
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./macbuild/workflowtest-${{RELEASE_TAG}}-x86_64-MacOS.zip
+          gh release upload ${RELEASE_TAG} ./macbuild/workflowtest-${RELEASE_TAG}-x86_64-MacOS.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         # uses: actions/upload-release-asset@v1
