@@ -45,6 +45,7 @@ jobs:
     - run: cargo check
     - run: cargo pkgid
     - run: 'echo "$(cargo pkgid | cut -d# -f2)"'
+    - run: 'echo github.GITHUB_REF="${{ github.GITHUB_REF }}"'
     - id: rustversion
       run: 'echo "::set-output name=rustversion::$(cargo pkgid | cut -d# -f2)"'
 
