@@ -41,7 +41,7 @@ jobs:
       id: debbuild
       uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
       with:
-        cmd: cargo deb
+        args: cargo deb
     - name: Upload Deb Artifact
       uses: actions/upload-artifact@v2
       with:
@@ -58,7 +58,7 @@ jobs:
       id: amd64staticbuild
       uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
       with:
-        cmd: cargo build --release --target=x86_64-unknown-linux-musl
+        args: cargo build --release --target=x86_64-unknown-linux-musl
     
     - name: Upload workflowtest Artifact
       uses: actions/upload-artifact@v2
