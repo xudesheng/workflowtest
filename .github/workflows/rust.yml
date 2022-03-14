@@ -125,16 +125,7 @@ jobs:
           asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
           asset_content_type: application/zip
 
-      - name: Upload Amd64 Windows Static Binary Zip Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./amd64windowsbinaries/amd64windowsbinaries.zip
-          asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_windows_amd64_binaries.zip'
-          asset_content_type: application/zip
-
+      
   upload-assets:
     name: ${{ matrix.target }}
     if: github.repository_owner == 'xudesheng'
