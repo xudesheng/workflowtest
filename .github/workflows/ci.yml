@@ -6,7 +6,7 @@ on:
 
 
 jobs:
-  release:
+  create_release:
     runs-on: ubuntu-latest
     steps:
     - name: Create Draft Release
@@ -19,19 +19,14 @@ jobs:
         release_name: Release_v0.0.33
         draft: true
         prerelease: false
-    
+  
+  test_release:
+    needs: [create_release]
+    runs-on: ubuntu-latest
+    steps:
     - name: test_value
-      run: 'echo release_id: ${{ steps.create_release.outputs.id }}'
+      run: 'echo release_id: ${{ needs.create_release.steps.create_release.outputs.id }}'
       
-    - uses: actions/upload-release-asset@v1.0.1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./my-artifact.zip
-        asset_name: my-artifact.zip
-        asset_content_type: application/zip
-
     - uses: eregon/publish-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
