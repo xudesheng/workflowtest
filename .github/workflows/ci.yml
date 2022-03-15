@@ -27,11 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: test_value
-      run: 'echo release_id: ${{ needs.create_release_step.outputs.id }}'
+      run: 'echo release_id: ${{ needs.create_release_step.outputs.release_id }}'
       
     - uses: eregon/publish-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        release_id: ${{ needs.create_release_step.outputs.id }}
+        release_id: ${{ needs.create_release_step.outputs.release_id }}
 

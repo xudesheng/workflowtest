@@ -20,22 +20,6 @@ defaults:
     shell: bash
 
 jobs:
-  # create-release:
-  #   if: github.repository_owner == 'xudesheng'
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: taiki-e/github-actions/install-rust@main
-  #       with:
-  #         toolchain: stable
-  #     - run: cargo package
-  #     - uses: taiki-e/create-gh-release-action@v1
-  #       with:
-  #         changelog: CHANGELOG.md
-  #         title: $version
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   step-1-release-tag-check:
     runs-on: ubuntu-latest
     outputs:
@@ -95,6 +79,8 @@ jobs:
   step-3-create-release:
     needs: [step-1-release-tag-check, step-2-build-test]
     runs-on: ubuntu-latest
+    outputs:
+      RELEASE_ID: ${{ steps.create_draft_release.outputs.id }}
     steps:
       - uses: actions/checkout@v2
       - name: Grab Release Varaibles
@@ -291,17 +277,10 @@ jobs:
     needs: [step-3-create-release,  x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Retrive Release ID
+      # - uses: actions/checkout@v2
+      - name: Display Release ID
         id: retrieve_release_id
-        run: |
-          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
-          content=$(gh release view ${RELEASE_TAG} --json id --jq ".id")
-          RELEASE_ID="${content//[$'\"\t\r\n ']}"
-
-          echo cleaned RELEASE_ID=${RELEASE_ID}
-
-          echo "::set-output name=RELEASE_ID::$RELEASE_ID"
+        run: 'echo release_id: ${{ needs.step-3-create-release.outputs.RELEASE_ID }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Release
@@ -310,6 +289,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          release_id: ${{ steps.retrieve_release_id.outputs.RELEASE_ID }}
+          release_id: ${{ needs.step-3-create-release.outputs.RELEASE_ID }}
 
   
