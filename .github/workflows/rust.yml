@@ -296,13 +296,16 @@ jobs:
         id: retrieve_release_id
         run: |
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
-          content=$(gh release view ${RELEASE_TAG} --json id)
-          content="${content//'%'/'%25'}"
-          content="${content//$'\n'/'%0A'}"
-          content="${content//$'\r'/'%0D'}"
-          echo content="${content}", hope no new line
+          # content=$(gh release view ${RELEASE_TAG} --json id)
+          # content="${content//'%'/'%25'}"
+          # content="${content//$'\n'/'%0A'}"
+          # content="${content//$'\r'/'%0D'}"
+          # echo content="${content}", hope no new line
 
-          RELEASE_ID=fromJson(${content}).id
+          # RELEASE_ID=fromJson(${content}).id
+          content=$(gh release view ${RELEASE_TAG} --json id --jq ".id")
+          RELEASE_ID="${content//[$'\"\t\r\n ']}"
+
           echo cleaned RELEASE_ID=${RELEASE_ID}
 
           echo "::set-output name=RELEASE_ID::$RELEASEID"
