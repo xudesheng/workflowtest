@@ -292,12 +292,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Retrive Release ID
+        id: retrieve_release_id
+        run: |
+          RELEASE_ID=$(gh release view v0.0.29 --json id |jq id)
+          echo RELEASE_ID="${RELEASE_ID}", hope no new line
+          RELEASE_ID=${RELEASE_ID//[$\t\r\n\"\ ']}
+          echo cleaned RELEASE_ID=${RELEASE_ID}
+          echo "::set-output name=RELEASE_ID::$RELEASEID"
       - name: Publish Release
         id: publish_release
         uses: eregon/publish-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          release_id: ${{ needs.step-3-create-release.steps.create_draft_release.outputs.id }}
+          release_id: ${{ steps.retrieve_release_id.outputs.RELEASE_ID }}
 
   
