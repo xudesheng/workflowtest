@@ -6,7 +6,7 @@ on:
 
 
 jobs:
-  create_release:
+  create_release_step:
     runs-on: ubuntu-latest
     steps:
     - name: Create Draft Release
@@ -21,11 +21,11 @@ jobs:
         prerelease: false
   
   test_release:
-    needs: [create_release]
+    needs: create_release_step
     runs-on: ubuntu-latest
     steps:
     - name: test_value
-      run: 'echo release_id: ${{ needs.create_release.steps.create_release.outputs.id }}'
+      run: 'echo release_id: ${{ needs.create_release_step.steps.create_release.outputs.id }}'
       
     - uses: eregon/publish-release@v1
       env:
