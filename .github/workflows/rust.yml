@@ -129,7 +129,9 @@ jobs:
           # gh release create ${draft_option:-} "${RELEASE_TAG}" ${prerelease:-} --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES:-}"
           echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
           echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_ENV
-          echo "RELEASE_NOTES=\"${RELEASE_NOTES}\"" >> $GITHUB_ENV
+          echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
+          echo "${RELEASE_NOTES}" >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create Draft Release
