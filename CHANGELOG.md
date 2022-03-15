@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.0.31] - 2022-03-14
+
+### Added
+ - create draft release first
+ - then publish it after uploads.
+ - handle multiline notes.
+
 ## [v0.0.30] - 2022-03-14
 
 ### Added
