@@ -96,14 +96,14 @@ RUN curl -sSL https://www.openssl.org/source/openssl-$SSL_VER.tar.gz | tar xz &&
 
 # Build curl (needs with-zlib and all this stuff to allow https)
 # curl_LDFLAGS needed on stretch to avoid fPIC errors - though not sure from what
-RUN curl -sSL https://curl.se/download/curl-$CURL_VER.tar.gz | tar xz && \
-    cd curl-$CURL_VER && \
-    CC="musl-gcc -fPIC -pie" LDFLAGS="-L$PREFIX/lib" CFLAGS="-I$PREFIX/include" ./configure \
-    --enable-shared=no --with-zlib --enable-static=ssl --enable-optimize --prefix=$PREFIX \
-    --with-ca-path=/etc/ssl/certs/ --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt --without-ca-fallback \
-    --with-openssl && \
-    make -j$(nproc) curl_LDFLAGS="-all-static" && make install && \
-    cd .. && rm -rf curl-$CURL_VER
+# RUN curl -sSL https://curl.se/download/curl-$CURL_VER.tar.gz | tar xz && \
+#     cd curl-$CURL_VER && \
+#     CC="musl-gcc -fPIC -pie" LDFLAGS="-L$PREFIX/lib" CFLAGS="-I$PREFIX/include" ./configure \
+#     --enable-shared=no --with-zlib --enable-static=ssl --enable-optimize --prefix=$PREFIX \
+#     --with-ca-path=/etc/ssl/certs/ --with-ca-bundle=/etc/ssl/certs/ca-certificates.crt --without-ca-fallback \
+#     --with-openssl && \
+#     make -j$(nproc) curl_LDFLAGS="-all-static" && make install && \
+#     cd .. && rm -rf curl-$CURL_VER
 
 # Build libpq
 RUN curl -sSL https://ftp.postgresql.org/pub/source/v$PQ_VER/postgresql-$PQ_VER.tar.gz | tar xz && \
@@ -117,6 +117,7 @@ RUN curl -sSL https://ftp.postgresql.org/pub/source/v$PQ_VER/postgresql-$PQ_VER.
     cd .. && rm -rf postgresql-$PQ_VER
 
 # Build libsqlite3 using same configuration as the alpine linux main/sqlite package
+# CC="musl-gcc -fPIC -pie" \
 RUN curl -sSL https://www.sqlite.org/2021/sqlite-autoconf-$SQLITE_VER.tar.gz | tar xz && \
     cd sqlite-autoconf-$SQLITE_VER && \
     CFLAGS="-DSQLITE_ENABLE_FTS4 -DSQLITE_ENABLE_FTS3_PARENTHESIS -DSQLITE_ENABLE_FTS5 -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_SECURE_DELETE -DSQLITE_ENABLE_UNLOCK_NOTIFY -DSQLITE_ENABLE_RTREE -DSQLITE_USE_URI -DSQLITE_ENABLE_DBSTAT_VTAB -DSQLITE_ENABLE_JSON1" \
