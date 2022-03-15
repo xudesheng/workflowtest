@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.0.27] - 2022-03-14
+
+### Added
+ - trigger new build
+ - modified linux action name from 'amd64' to 'x86_64-unknown-linux-musl'
+ - reorg
+
 ## [v0.0.26] - 2022-03-14
 
 ### Added

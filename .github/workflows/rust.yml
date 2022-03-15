@@ -149,10 +149,10 @@ jobs:
         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
         echo CARGO_RELEASE="${CARGO_RELEASE}"
         TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-ubuntu-linux.deb
-        mv ./target/debian/workflowtest_${CARGO_RELEASE}_amd64.deb ./target/debian/${TARGET_FILE_NAME}
-        ls -l ./target/debian
+        cp ./target/debian/workflowtest_${CARGO_RELEASE}_amd64.deb ./${TARGET_FILE_NAME}
+        ls -l 
 
-        gh release upload ${RELEASE_TAG} ./target/debian/${TARGET_FILE_NAME} --clobber
+        gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -184,10 +184,10 @@ jobs:
 
         TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.tar.gz
 
-        tar czf ./target/${TARGET}/release/${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
-        ls -l ./target/${TARGET}/release/
+        tar czf ./${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
+        ls -l
 
-        gh release upload ${RELEASE_TAG} ./target/${TARGET}/release/${TARGET_FILE_NAME} --clobber
+        gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -208,6 +208,7 @@ jobs:
     if: github.repository_owner == 'xudesheng'
     needs:
       - step-3-create-release
+      - step-1-release-tag-check
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -220,7 +221,11 @@ jobs:
       - name: build and check
         run: |
           cargo build --release
-  
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          echo tag=${RELEASE_TAG}
+          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
           ls -l ./target/release/
       - run: 'powershell Compress-7Zip ./target/release/workflowtest.exe -ArchiveFileName workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-windows.zip -Format Zip'
       - name: Upload windows binary file to the release
@@ -282,10 +287,10 @@ jobs:
 
           TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-macos.tar.gz
 
-          tar czf ./target/release/${TARGET_FILE_NAME} ./target/release/workflowtest
-          ls -l ./target/release/
+          tar czf ./${TARGET_FILE_NAME} ./target/release/workflowtest
+          ls -l 
 
-          gh release upload ${RELEASE_TAG} ./target/release/${TARGET_FILE_NAME} --clobber
+          gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
