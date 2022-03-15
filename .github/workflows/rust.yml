@@ -230,6 +230,8 @@ jobs:
       - step-3-create-release
       - step-1-release-tag-check
     runs-on: windows-latest
+    env:
+      RUSTFLAGS: '-C target-feature=+crt-static'
     steps:
       - uses: actions/checkout@v2
       - name: Install 7Zip PowerShell Module
