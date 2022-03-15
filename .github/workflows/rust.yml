@@ -163,7 +163,7 @@ jobs:
     #     path: ./target/debian/*
   
   x86_64-unknown-linux-musl:
-    needs: [build, step-1-release-tag-check]
+    needs: [step-3-create-release]
     runs-on: ubuntu-latest
     name: x86_64-unknown-linux-musl
     steps:
@@ -207,8 +207,7 @@ jobs:
     name: windowsbuild
     if: github.repository_owner == 'xudesheng'
     needs:
-      - build
-      - step-1-release-tag-check
+      - step-3-create-release
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
@@ -257,8 +256,7 @@ jobs:
     name: macbuild
     if: github.repository_owner == 'xudesheng'
     needs:
-      - build
-      - step-1-release-tag-check
+      - step-3-create-release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v2
