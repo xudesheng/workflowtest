@@ -36,7 +36,7 @@ jobs:
   #       env:
   #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  quickcheck:
+  step-1-release-tag-check:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.rustversion.outputs.rustversion }}
@@ -78,145 +78,25 @@ jobs:
     - id: release_tag
       run: 'echo "::set-output name=release_tag::${GITHUB_REF#refs/tags/}"'
 
-  build:
-    needs: quickcheck
+  step-2-build-test:
+    needs: step-1-release-tag-check
     name: 'build-${{matrix.os}}'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
     - uses: actions/checkout@v2
     - name: Build
       run: cargo build
     - name: Run tests
       run: cargo test
-    
   
-  debbuild:
-    needs: [build]
-    runs-on: ubuntu-latest
-    name: Amd64Deb
-    steps:
-    - uses: actions/checkout@v2
-    - name: BuildDeb
-      id: debbuild
-      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
-      with:
-        args: cargo deb
-    - name: Upload Deb Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: amd64deb
-        path: ./target/debian/*
-  
-  x86_64-unknown-linux-musl:
-    needs: [build, quickcheck]
-    runs-on: ubuntu-latest
-    name: x86_64-unknown-linux-musl
-    steps:
-    - uses: actions/checkout@v2
-    - name: StaticBinaryBuild
-      id: amd64staticbuild
-      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
-      with:
-        args: cargo build --release --target=x86_64-unknown-linux-musl
-    
-    - name: Upload workflowtest Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: x86_64-unknown-linux-musl
-        path: ./target/x86_64-unknown-linux-musl/release/workflowtest
-    - run: 'zip -j workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-unknown-linux-musl.zip ./target/x86_64-unknown-linux-musl/release/workflowtest'
-    - name: Upload Zip Artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: x86_64-unknown-linux-musl
-        path: workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-unknown-linux-musl.zip
-  
-  windowsbuild:
-    name: windowsbuild
-    if: github.repository_owner == 'xudesheng'
-    needs:
-      - build
-      - quickcheck
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install 7Zip PowerShell Module
-        shell: powershell
-        run: Install-Module 7Zip4PowerShell -Force -Verbose
-      - uses: taiki-e/github-actions/install-rust@main
-        with:
-          toolchain: stable
-      - name: check result
-        run: |
-          cargo build --release
-  
-          ls -l ./target/release/
-      - name: Upload workflowtest Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: windowsbuild
-          path: ./target/release/workflowtest.exe
-      # - run: 'zip -j amd64-windowsbuild-binaries.zip ./target/release/workflowtest.exe'
-      - run: 'powershell Compress-7Zip ./target/release/workflowtest.exe -ArchiveFileName workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-windows.zip -Format Zip'
-      - name: Upload windows build Zip Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: windowsbuild
-          path: workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-windows.zip
-
-  macbuild:
-    name: macbuild
-    if: github.repository_owner == 'xudesheng'
-    needs:
-      - build
-      - quickcheck
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies (MacOS)
-        run: |
-          brew install openssl
-      - uses: taiki-e/github-actions/install-rust@main
-        with:
-          toolchain: stable
-      - name: check result
-        run: |
-          cargo build --release
-          ls -l ./target/release/
-          strip ./target/release/workflowtest
-          ls -l ./target/release
-      - name: Upload workflowtest Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: macbuild
-          path: ./target/release/workflowtest
-      - run: 'zip -j workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-MacOS.zip ./target/release/workflowtest'
-      - name: Upload mac build Zip Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: macbuild
-          path: workflowtest-${{needs.quickcheck.outputs.release_tag}}-x86_64-MacOS.zip
-
-  update_release_draft:
-    needs: [quickcheck,  x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
+  step-3-create-release:
+    needs: [step-1-release-tag-check, step-2-build-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
-      # - name: Create Release
-      #   id: create_release
-      #   uses: actions/create-release@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      #   with:
-      #     tag_name: '${{ needs.quickcheck.outputs.version }}'
-      #     release_name: Release ${{ needs.quickcheck.outputs.version }}
-      #     body: 'Change Me'
-      #     draft: true
-      #     prerelease: false
       - name: Create Release
         id: create_release
         run: |
@@ -250,77 +130,319 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - run: 'echo "Tag name is ${{needs.quickcheck.outputs.version}}"'
-      - run: 'echo "Tag name is ${{needs.quickcheck.outputs.release_tag}}"'
-      - uses: actions/download-artifact@v2
-      - run: ls -lha
-      - name: Upload amd64 deb Release Asset
+  debbuild:
+    needs: [step-3-create-release]
+    runs-on: ubuntu-latest
+    name: Amd64Deb
+    steps:
+    - uses: actions/checkout@v2
+    - name: BuildDeb
+      id: debbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        args: cargo deb
+    - name: Upload deb file to the release
+      run: |
+        ls -l ./target/debian
+        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+        echo tag=${RELEASE_TAG}
+        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+        echo CARGO_RELEASE="${CARGO_RELEASE}"
+        TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-ubuntu-linux.deb
+        mv ./target/debian/workflowtest_${CARGO_RELEASE}_amd64.deb ./target/debian/${TARGET_FILE_NAME}
+        ls -l ./target/debian
+
+        gh release upload ${RELEASE_TAG} ./target/debian/${TARGET_FILE_NAME} --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Upload Deb Artifact
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: amd64deb
+    #     path: ./target/debian/*
+  
+  x86_64-unknown-linux-musl:
+    needs: [build, step-1-release-tag-check]
+    runs-on: ubuntu-latest
+    name: x86_64-unknown-linux-musl
+    steps:
+    - uses: actions/checkout@v2
+    - name: StaticBinaryBuild
+      id: amd64staticbuild
+      uses: docker://xudesheng/rustbuilder:x86_64-musl-1.59.0-deb-v1
+      with:
+        args: cargo build --release --target=x86_64-unknown-linux-musl
+    - name: Upload linux-musl binary file to the release
+      run: |
+        TARGET=x86_64-unknown-linux-musl
+        ls -l ./target/${TARGET}/release
+        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+        echo tag=${RELEASE_TAG}
+        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+        echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+        TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.tar.gz
+
+        tar czf ./target/${TARGET}/release/${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
+        ls -l ./target/${TARGET}/release/
+
+        gh release upload ${RELEASE_TAG} ./target/${TARGET}/release/${TARGET_FILE_NAME} --clobber
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    # - name: Upload workflowtest Artifact
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: x86_64-unknown-linux-musl
+    #     path: ./target/x86_64-unknown-linux-musl/release/workflowtest
+    # - run: 'zip -j workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-unknown-linux-musl.zip ./target/x86_64-unknown-linux-musl/release/workflowtest'
+    # - name: Upload Zip Artifact
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: x86_64-unknown-linux-musl
+    #     path: workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-unknown-linux-musl.zip
+  
+  windowsbuild:
+    name: windowsbuild
+    if: github.repository_owner == 'xudesheng'
+    needs:
+      - build
+      - step-1-release-tag-check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install 7Zip PowerShell Module
+        shell: powershell
+        run: Install-Module 7Zip4PowerShell -Force -Verbose
+      - uses: taiki-e/github-actions/install-rust@main
+        with:
+          toolchain: stable
+      - name: build and check
         run: |
+          cargo build --release
+  
+          ls -l ./target/release/
+      - run: 'powershell Compress-7Zip ./target/release/workflowtest.exe -ArchiveFileName workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-windows.zip -Format Zip'
+      - name: Upload windows binary file to the release
+        run: |
+          ls -l ./target/release
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./amd64deb/workflowtest_${CARGO_RELEASE}_amd64.deb --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # uses: actions/upload-release-asset@v1
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #   asset_path: ./amd64deb/workflowtest_${{needs.quickcheck.outputs.version}}_amd64.deb
-        #   asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_ubuntu_amd64.deb'
-        #   asset_content_type: application/vnd.debian.binary-package
-      
-      - name: Upload x86_64 Linux musl Binary Zip Release Asset
-        run: |
-          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
-          echo tag=${RELEASE_TAG}
-          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./x86_64-unknown-linux-musl/workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.zip --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # uses: actions/upload-release-asset@v1
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #   asset_path: ./x86_64-unknown-linux-musl/x86_64-unknown-linux-musl.zip
-        #   asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_linux_amd64_binaries.zip'
-        #   asset_content_type: application/zip
-      
-      - name: Upload X86_64 Windows Binary Zip Release Asset
-        run: |
-          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
-          echo tag=${RELEASE_TAG}
-          CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./windowsbuild/workflowtest-${RELEASE_TAG}-x86_64-windows.zip --clobber
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+          TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.tar.gz
+
+          ls -l .
+          
+          gh release upload ${RELEASE_TAG} workflowtest-${RELEASE_TAG}-x86_64-windows.zip --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-        # uses: actions/upload-release-asset@v1
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #   asset_path: ./windowsbuild/amd64-windowsbuild-binaries.zip
-        #   asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_windows_amd64_binaries.zip'
-        #   asset_content_type: application/zip
+      # - name: Upload workflowtest Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: windowsbuild
+      #     path: ./target/release/workflowtest.exe
+      # # - run: 'zip -j amd64-windowsbuild-binaries.zip ./target/release/workflowtest.exe'
+      # - run: 'powershell Compress-7Zip ./target/release/workflowtest.exe -ArchiveFileName workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-windows.zip -Format Zip'
+      # - name: Upload windows build Zip Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: windowsbuild
+      #     path: workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-windows.zip
 
-      - name: Upload Amd64 Mac Binary Zip Release Asset
+  macbuild:
+    name: macbuild
+    if: github.repository_owner == 'xudesheng'
+    needs:
+      - build
+      - step-1-release-tag-check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies (MacOS)
         run: |
+          brew install openssl
+      - uses: taiki-e/github-actions/install-rust@main
+        with:
+          toolchain: stable
+      - name: build and check result
+        run: |
+          cargo build --release
+          ls -l ./target/release/
+          strip ./target/release/workflowtest
+          ls -l ./target/release
+      - name: Upload MacOS binary file to the release
+        run: |
+          ls -l ./target/release
           RELEASE_TAG="${GITHUB_REF#refs/tags/}"
           echo tag=${RELEASE_TAG}
           CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-          gh release upload ${RELEASE_TAG} ./macbuild/workflowtest-${RELEASE_TAG}-x86_64-MacOS.zip
+          echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+          TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-macos.tar.gz
+
+          tar czf ./target/release/${TARGET_FILE_NAME} ./target/release/workflowtest
+          ls -l ./target/release/
+
+          gh release upload ${RELEASE_TAG} ./target/release/${TARGET_FILE_NAME} --clobber
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # uses: actions/upload-release-asset@v1
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # with:
-        #   upload_url: ${{ steps.create_release.outputs.upload_url }}
-        #   asset_path: ./macbuild/amd64-macbuild-binaries.zip
-        #   asset_name: 'workflowtest_${{needs.quickcheck.outputs.version}}_mac_amd64_binaries.zip'
-        #   asset_content_type: application/zip
+
+      # - name: Upload MacOS x86_64 binary file to the release
+      #   run: |
+      #     TARGET=x86_64-unknown-linux-musl
+      #     ls -l ./target/${TARGET}/release
+      #     RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+      #     echo tag=${RELEASE_TAG}
+      #     CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+      #     echo CARGO_RELEASE="${CARGO_RELEASE}"
+
+      #     TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.tar.gz
+
+      #     tar czf ./target/${TARGET}/release/${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
+      #     ls -l ./target/${TARGET}/release/
+
+      #     gh release upload ${RELEASE_TAG} ./target/${TARGET}/release/${TARGET_FILE_NAME} --clobber
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      
+      # - name: Upload workflowtest Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: macbuild
+      #     path: ./target/release/workflowtest
+      # - run: 'zip -j workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-MacOS.zip ./target/release/workflowtest'
+      # - name: Upload mac build Zip Artifact
+      #   uses: actions/upload-artifact@v2
+      #   with:
+      #     name: macbuild
+      #     path: workflowtest-${{needs.step-1-release-tag-check.outputs.release_tag}}-x86_64-MacOS.zip
+
+  # update_release_draft:
+  #   needs: [step-1-release-tag-check,  x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+      
+  #     # - name: Create Release
+  #     #   id: create_release
+  #     #   uses: actions/create-release@v1
+  #     #   env:
+  #     #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+  #     #   with:
+  #     #     tag_name: '${{ needs.step-1-release-tag-check.outputs.version }}'
+  #     #     release_name: Release ${{ needs.step-1-release-tag-check.outputs.version }}
+  #     #     body: 'Change Me'
+  #     #     draft: true
+  #     #     prerelease: false
+  #     - name: Create Release
+  #       id: create_release
+  #       run: |
+  #         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #         echo tag=${RELEASE_TAG}
+  #         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #         echo CARGO_RELEASE="${CARGO_RELEASE}"
+  #         parse_changelog_tag="v0.4.7"
+        
+  #         case "${OSTYPE}" in
+  #             linux*) target="x86_64-unknown-linux-musl" ;;
+  #             darwin*) target="x86_64-apple-darwin" ;;
+  #             cygwin* | msys*) target="x86_64-pc-windows-msvc" ;;
+  #             *) bail "unrecognized OSTYPE '${OSTYPE}'" ;;
+  #         esac
+  #         echo "target=${target}"
+  #         curl --proto '=https' --tlsv1.2 -fsSL --retry 10 --retry-connrefused "https://github.com/taiki-e/parse-changelog/releases/download/${parse_changelog_tag}/parse-changelog-${target}.tar.gz" \
+  #         | tar xzf -
+  #         RELEASE_NOTES=$(./parse-changelog "./CHANGELOG.md" "${CARGO_RELEASE}")
+
+  #         echo notes="${RELEASE_NOTES}"
+  #         rm -f ./parse-changelog
+
+  #         if gh release view "${RELEASE_TAG}" &>/dev/null; then
+  #             # https://cli.github.com/manual/gh_release_delete
+  #             gh release delete "${RELEASE_TAG}" -y
+  #         fi
+
+  #         RELEASE_TITLE="Release_${RELEASE_TAG}"
+  #         gh release create ${draft_option:-} "${RELEASE_TAG}" ${prerelease:-} --title "${RELEASE_TITLE}" --notes "${RELEASE_NOTES:-}"
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #     # - run: 'echo "Tag name is ${{needs.step-1-release-tag-check.outputs.version}}"'
+  #     - run: 'echo "Tag name is ${{needs.step-1-release-tag-check.outputs.release_tag}}"'
+  #     - uses: actions/download-artifact@v2
+  #     - run: ls -lha
+  #     - name: Upload amd64 deb Release Asset
+  #       run: |
+  #         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #         echo tag=${RELEASE_TAG}
+  #         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #         gh release upload ${RELEASE_TAG} ./amd64deb/workflowtest_${CARGO_RELEASE}_amd64.deb --clobber
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # uses: actions/upload-release-asset@v1
+  #       # env:
+  #       #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # with:
+  #       #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #       #   asset_path: ./amd64deb/workflowtest_${{needs.step-1-release-tag-check.outputs.version}}_amd64.deb
+  #       #   asset_name: 'workflowtest_${{needs.step-1-release-tag-check.outputs.version}}_ubuntu_amd64.deb'
+  #       #   asset_content_type: application/vnd.debian.binary-package
+      
+  #     - name: Upload x86_64 Linux musl Binary Zip Release Asset
+  #       run: |
+  #         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #         echo tag=${RELEASE_TAG}
+  #         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #         gh release upload ${RELEASE_TAG} ./x86_64-unknown-linux-musl/workflowtest-${RELEASE_TAG}-x86_64-unknown-linux-musl.zip --clobber
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # uses: actions/upload-release-asset@v1
+  #       # env:
+  #       #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # with:
+  #       #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #       #   asset_path: ./x86_64-unknown-linux-musl/x86_64-unknown-linux-musl.zip
+  #       #   asset_name: 'workflowtest_${{needs.step-1-release-tag-check.outputs.version}}_linux_amd64_binaries.zip'
+  #       #   asset_content_type: application/zip
+      
+  #     - name: Upload X86_64 Windows Binary Zip Release Asset
+  #       run: |
+  #         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #         echo tag=${RELEASE_TAG}
+  #         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #         gh release upload ${RELEASE_TAG} ./windowsbuild/workflowtest-${RELEASE_TAG}-x86_64-windows.zip --clobber
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #       # uses: actions/upload-release-asset@v1
+  #       # env:
+  #       #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # with:
+  #       #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #       #   asset_path: ./windowsbuild/amd64-windowsbuild-binaries.zip
+  #       #   asset_name: 'workflowtest_${{needs.step-1-release-tag-check.outputs.version}}_windows_amd64_binaries.zip'
+  #       #   asset_content_type: application/zip
+
+  #     - name: Upload Amd64 Mac Binary Zip Release Asset
+  #       run: |
+  #         RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #         echo tag=${RELEASE_TAG}
+  #         CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #         gh release upload ${RELEASE_TAG} ./macbuild/workflowtest-${RELEASE_TAG}-x86_64-MacOS.zip
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # uses: actions/upload-release-asset@v1
+  #       # env:
+  #       #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       # with:
+  #       #   upload_url: ${{ steps.create_release.outputs.upload_url }}
+  #       #   asset_path: ./macbuild/amd64-macbuild-binaries.zip
+  #       #   asset_name: 'workflowtest_${{needs.step-1-release-tag-check.outputs.version}}_mac_amd64_binaries.zip'
+  #       #   asset_content_type: application/zip
       
   
