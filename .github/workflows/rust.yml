@@ -190,36 +190,36 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
-  aarch64-unknown-linux-musl:
-    needs: [step-3-create-release]
-    runs-on: ubuntu-latest
-    name: aarch64-unknown-linux-musl
-    steps:
-    - uses: actions/checkout@v2
-    - run: |
-        docker run --rm --privileged multiarch/qemu-user-static:register --reset
-    - name: aarch64-StaticBinaryBuild
-      id: aarch64staticbuild
-      uses: docker://xudesheng/rustbuilder:aarch64-musl-1.59.0-deb-v1
-      with:
-        args: cargo build --release --target=aarch64-unknown-linux-musl
-    - name: Upload linux-musl binary file to the release
-      run: |
-        TARGET=aarch64-unknown-linux-musl
-        ls -l ./target/${TARGET}/release
-        RELEASE_TAG="${GITHUB_REF#refs/tags/}"
-        echo tag=${RELEASE_TAG}
-        CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
-        echo CARGO_RELEASE="${CARGO_RELEASE}"
+  # aarch64-unknown-linux-musl:
+  #   needs: [step-3-create-release]
+  #   runs-on: ubuntu-latest
+  #   name: aarch64-unknown-linux-musl
+  #   steps:
+  #   - uses: actions/checkout@v2
+  #   # - run: |
+  #   #     docker run --rm --privileged multiarch/qemu-user-static:register --reset
+  #   - name: aarch64-StaticBinaryBuild
+  #     id: aarch64staticbuild
+  #     uses: docker://xudesheng/rustbuilder:aarch64-musl-1.59.0-deb-v1
+  #     with:
+  #       args: cargo build --release --target=aarch64-unknown-linux-musl
+  #   - name: Upload linux-musl binary file to the release
+  #     run: |
+  #       TARGET=aarch64-unknown-linux-musl
+  #       ls -l ./target/${TARGET}/release
+  #       RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+  #       echo tag=${RELEASE_TAG}
+  #       CARGO_RELEASE=$(cargo pkgid | cut -d# -f2)
+  #       echo CARGO_RELEASE="${CARGO_RELEASE}"
 
-        TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-${TARGET}.tar.gz
+  #       TARGET_FILE_NAME=workflowtest-${RELEASE_TAG}-${TARGET}.tar.gz
 
-        tar czf ./${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
-        ls -l
+  #       tar czf ./${TARGET_FILE_NAME} ./target/${TARGET}/release/workflowtest
+  #       ls -l
 
-        gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       gh release upload ${RELEASE_TAG} ./${TARGET_FILE_NAME} --clobber
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     
   
@@ -306,7 +306,7 @@ jobs:
       
 
   publish_release:
-    needs: [step-3-create-release, aarch64-unknown-linux-musl, x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
+    needs: [step-3-create-release, x86_64-unknown-linux-musl, debbuild,windowsbuild,macbuild]
     runs-on: ubuntu-latest
     steps:
       # - uses: actions/checkout@v2
