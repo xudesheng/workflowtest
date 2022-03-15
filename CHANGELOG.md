@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [v0.0.28] - 2022-03-14
+
+### Added
+ - create draft release first
+ - then publish it after uploads.
+
 ## [v0.0.27] - 2022-03-14
 
 ### Added
