@@ -295,12 +295,16 @@ jobs:
       - name: Retrive Release ID
         id: retrieve_release_id
         run: |
-          RELEASE_ID=$(gh release view v0.0.29 --json id |jq id)
-          echo RELEASE_ID="${RELEASE_ID}", hope no new line
+          RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          content=$(gh release view ${RELEASE_TAG} --json id)
+          content="${content//'%'/'%25'}"
+          content="${content//$'\n'/'%0A'}"
+          content="${content//$'\r'/'%0D'}"
+          echo content="${content}", hope no new line
 
-          RELEASE_ID=${RELEASE_ID//[$\t\r\n\"\ ']}
+          RELEASE_ID=fromJson(${content}).id
           echo cleaned RELEASE_ID=${RELEASE_ID}
-          
+
           echo "::set-output name=RELEASE_ID::$RELEASEID"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
