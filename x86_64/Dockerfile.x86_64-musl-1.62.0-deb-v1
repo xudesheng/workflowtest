@@ -6,9 +6,9 @@ FROM xudesheng/rustbuilder:x86_64-musl-1.62.0
 # cd x86_64
 # docker build -t xudesheng/rustbuilder:x86_64-musl-1.62.0-deb-v1 -f .\Dockerfile.x86_64-musl-1.62.0-deb-v1 .
 
-RUN cargo install cargo-deb
+RUN cargo install cargo-deb && cargo install cargo-rpm
 
-# docker run -v $pwd:/volume --rm --env GITHUB_WORKSPACE=. -t xudesheng/rustbuilder:x86_64-musl-1.62.0-deb-v1 cargo deb
+# docker run -v $(pwd):/volume --rm --env GITHUB_WORKSPACE=. -t xudesheng/rustbuilder:x86_64-musl-1.62.0-deb-v1 cargo deb
 # docker run -v %cd%:/volume --rm --env GITHUB_WORKSPACE=. -t xudesheng/rustbuilder:x86_64-musl-1.62.0-deb-v1 cargo deb
 COPY entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
