@@ -1,10 +1,10 @@
 FROM ubuntu:20.04
 LABEL maintainer="Xu Desheng <xudesheng@gmail.com>"
 # https://github.com/clux/muslrust/blob/main/Dockerfile.stable
-# tagged as "xudesheng/rustbuilder:x86_64-musl-1.62.0"
+# tagged as "xudesheng/rustbuilder:x86_64-musl-1.62.1"
 # how to build image:
 # cd x86_64
-# docker build -t xudesheng/rustbuilder:x86_64-musl-1.62.0 -f .\Dockerfile.x86_64-musl-1.62.0 .
+# docker build -t xudesheng/rustbuilder:x86_64-musl-1.62.1 -f ./Dockerfile.x86_64-musl-1.62.1 .
 
 # Required packages:
 # - musl-dev, musl-tools - the musl toolchain
@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install rust using rustup
 ARG CHANNEL="stable"
-ENV RUSTUP_VER="1.62.0" \
+ENV RUSTUP_VER="1.62.1" \
     RUST_ARCH="x86_64-unknown-linux-gnu"
 
 # original: https://static.rust-lang.org/rustup/archive/${RUSTUP_VER}/${RUST_ARCH}/rustup-init
@@ -147,8 +147,8 @@ ENV PATH=$PREFIX/bin:$PATH \
     LIBZ_SYS_STATIC=1
 
 # it doesn't matter you have ' --target x86_64-unknown-linux-musl' here, since it's the default target.
-# docker run -v $pwd:/volume --rm -t xudesheng/rustbuilder:x86_64-musl-1.62.0 cargo build --release
-# docker run -v %cd%:/volume --rm -t xudesheng/rustbuilder:x86_64-musl-1.62.0 cargo build --release
+# docker run -v $pwd:/volume --rm -t xudesheng/rustbuilder:x86_64-musl-1.62.1 cargo build --release
+# docker run -v %cd%:/volume --rm -t xudesheng/rustbuilder:x86_64-musl-1.62.1 cargo build --release
 
 # Allow ditching the -w /volume flag to docker run
 WORKDIR /volume
